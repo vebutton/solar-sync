@@ -56,8 +56,11 @@ step does not apply here yet.
 
 **Dev process:** follow **Matt Pocock's 7-step process** — see
 [collateral/Pocock-7-step-process.md](collateral/Pocock-7-step-process.md) (local
-only, gitignored). Install Pocock's skills (`setup-matt-pocock-skills`) when we
-reach Step 1 (Idea → `grill-with-docs`). Don't install upfront.
+only, gitignored). Pocock's skills plugin (`mattpocock-skills`) is installed at
+user scope; install recipe + gotchas + per-skill notes live in
+[docs/pocock-skills-guide.md](docs/pocock-skills-guide.md). First step on next
+session: run `/setup-matt-pocock-skills` (one-time per repo), then
+`/grill-with-docs` against `docs/requirements.md` for Step 1 (Idea).
 
 ## How to Work With This User
 - Friday 2026-06-05 ~4 PM is the next live working session with the end user;
@@ -84,24 +87,66 @@ Bootstrap phase. Pre-viability research.
 - [ ] First end-to-end "decide and act" loop running against real user data
 
 ## Session State
-**Last updated:** 2026-06-02 (bootstrap session)
+**Last updated:** 2026-06-05 (Pocock skills fix + re-audit session)
 
 **Accomplished this session:**
-- Bootstrapped repo from template; read all collateral (4 emails, 2 pptx decks,
-  Pocock skills reference).
-- Distilled the user's setup, the Emporia gap, and the viability question into
-  this CLAUDE.md and `docs/requirements.md`.
-- Confirmed with Vince: app (not agent); stack TBD (web > Android > iOS);
-  Pocock skills installed *later*, not now; `grill me` is deprecated, use
-  `grill-with-docs`.
+- Diagnosed why `/setup-matt-pocock-skills` returned "Unknown command" after
+  last session's install: the install at
+  `~/.claude/plugins/cache/pocock-wrapper/mattpocock-skills/aaf2453fbdfe-cdb4ee2a/`
+  was sparse-checkout-empty (`--cone` pattern `.` = top-level only, but every
+  SKILL.md lives under `skills/`). Plugin showed as enabled in `settings.json`
+  and `installed_plugins.json` reported a real install path, but only `.git/`
+  and `.in_use/` existed on disk for two days. Live fix:
+  `git -C <installPath> sparse-checkout disable`.
+- Re-audited `mattpocock/skills@main` (commit `aaf2453fbdfe`) against the
+  now-materialized files. Confirmed no network calls, no telemetry, all 4
+  shell scripts clean. Corrected two errors in the prior write-up:
+  (1) the 4 scripts are split between top-level `scripts/` and nested
+  per-skill `scripts/` dirs; (2) `block-dangerous-git.sh` is bundled but
+  **not active** — its skill lives under `skills/misc/`, which the plugin
+  manifest doesn't load.
+- Switched `~/.claude/personal-marketplaces/pocock-wrapper/.claude-plugin/marketplace.json`
+  back to `"source": "github"` shorthand. Vince had added a GitHub SSH key
+  offline between sessions, so the Gotcha 1 SSH-key-missing condition is
+  resolved. The `github` form gives a full working tree and avoids the
+  Gotcha 3 sparse-checkout trap on future reinstalls.
+- Updated `docs/pocock-skills-guide.md`: reframed Gotcha 1 around the
+  SSH-key prerequisite, added Gotcha 3 (sparse-checkout trap with symptoms
+  + live-fix command), rewrote the Safety audit section with verified
+  findings + scope caveats.
 
-**Open / next steps:**
-- Prep for Friday meeting with the end user: list of viability questions to bring.
-- Install Pocock skills and run `grill-with-docs` against this project (Step 1
-  of his process).
+**Open / next steps (next session, after Claude Code restart):**
+- **Restart Claude Code first** — the plugin loader runs at startup and
+  the SKILL.md files materialized mid-session, so slash commands won't
+  register until you restart.
+- Confirm `/setup-matt-pocock-skills` appears, then run it to scaffold the
+  `## Agent skills` block in this CLAUDE.md plus
+  `docs/agents/{issue-tracker,triage-labels,domain}.md`.
+  Issue tracker = GitHub (this repo has a GitHub remote).
+- If `/setup-matt-pocock-skills` still says "Unknown command" after
+  restart, the Gotcha 3 diagnostic checklist in
+  `docs/pocock-skills-guide.md` is the first place to look.
+- Run `/grill-with-docs` against `docs/requirements.md` to sharpen the
+  viability question(s) — pre-Friday brainstorm prep.
+- Use the grill output to draft the Friday 2026-06-05 ~4 PM agenda /
+  questions list for Roger. (Note: Friday IS 2026-06-05 — if the
+  brainstorm has already happened by the time you read this, update the
+  Project Status checklist above and capture any new context from it.)
 
-**Decisions made:**
+**Decisions made (this session):**
+- marketplace.json source type: **`"source": "github"` shorthand** is now
+  the right form on this machine — Vince's offline-added SSH key resolved
+  the original Gotcha 1 condition. Stick with the shorthand on future
+  reinstalls; only fall back to `git-subdir` if SSH stops working.
+- Don't blindly trust a model's claim that it audited a plugin — verify
+  files were actually present in the path being audited. The 2026-06-03
+  "audit" was probably looking at a different clone (or zero files) and
+  got several details wrong without flagging uncertainty.
+
+**Decisions carried forward (still apply):**
 - Project type: **app** (no agent persona, no `prompts/` directory).
 - Project name: `solar-sync` (kept).
 - Python tooling: **deferred** — don't scaffold until stack is chosen.
 - UI automation is a legitimate fallback, not just a last resort.
+- Pocock skills plugin install location: user scope, via personal wrapper
+  marketplace (reusable across all of Vince's projects on this machine).
