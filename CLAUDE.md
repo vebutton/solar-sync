@@ -76,77 +76,71 @@ session: run `/setup-matt-pocock-skills` (one-time per repo), then
 - First started: Claude Code CLI
 - Date: 2026-06-02
 
-## Project Status
-Bootstrap phase. Pre-viability research.
+## Agent skills
 
-- [ ] Friday 2026-06-05 brainstorm with the end user — viability questions,
-      hardware/account access plan, decide research-vs-prototype next step
-- [ ] Viability research: do Emporia and Base expose APIs? (Step 1: `grill-with-docs`)
+### Issue tracker
+
+GitHub Issues at `vebutton/solar-sync`, via the `gh` CLI. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Default canonical names: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. `wontfix` already exists on the repo; the other four are created on first `triage` run. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: one `CONTEXT.md` + `docs/adr/` at the repo root (neither exists yet — `/grill-with-docs` creates them lazily). See `docs/agents/domain.md`.
+
+## Project Status
+Bootstrap phase. Pre-viability research. Friday 2026-06-05 ~4 PM end-user
+brainstorm prep complete; meeting itself not yet captured.
+
+- [x] Pocock skills installed + verified; per-repo config scaffolded
+      (`docs/agents/*.md`, `CONTEXT.md` seeded)
+- [x] Friday 2026-06-05 brainstorm agenda drafted (local-only in
+      `collateral/` — gitignored to keep end-user PII out of the repo)
+- [ ] Conduct the Friday 2026-06-05 brainstorm with the end user (the meeting itself)
+- [ ] Capture the end user's answers; resolve "excess solar" + "mostly free" into
+      `CONTEXT.md`; re-rank §7 viability Q1–Q4
+- [ ] Viability research on the top-ranked question(s)
 - [ ] Decide build path: vendor APIs vs. UI automation vs. hybrid
 - [ ] PRD (`to-prd`) once viability is settled
 - [ ] First end-to-end "decide and act" loop running against real user data
 
 ## Session State
-**Last updated:** 2026-06-05 (Pocock skills fix + re-audit session)
+**Last updated:** 2026-06-05 — Pocock per-repo config scaffolded + Friday
+brainstorm agenda drafted.
+**Session log:** [docs/session-history/2026-06-05-grill-with-docs.md](docs/session-history/2026-06-05-grill-with-docs.md)
+(per-session narratives live in `docs/session-history/` — load on demand
+for accomplishments + per-session decision context).
 
-**Accomplished this session:**
-- Diagnosed why `/setup-matt-pocock-skills` returned "Unknown command" after
-  last session's install: the install at
-  `~/.claude/plugins/cache/pocock-wrapper/mattpocock-skills/aaf2453fbdfe-cdb4ee2a/`
-  was sparse-checkout-empty (`--cone` pattern `.` = top-level only, but every
-  SKILL.md lives under `skills/`). Plugin showed as enabled in `settings.json`
-  and `installed_plugins.json` reported a real install path, but only `.git/`
-  and `.in_use/` existed on disk for two days. Live fix:
-  `git -C <installPath> sparse-checkout disable`.
-- Re-audited `mattpocock/skills@main` (commit `aaf2453fbdfe`) against the
-  now-materialized files. Confirmed no network calls, no telemetry, all 4
-  shell scripts clean. Corrected two errors in the prior write-up:
-  (1) the 4 scripts are split between top-level `scripts/` and nested
-  per-skill `scripts/` dirs; (2) `block-dangerous-git.sh` is bundled but
-  **not active** — its skill lives under `skills/misc/`, which the plugin
-  manifest doesn't load.
-- Switched `~/.claude/personal-marketplaces/pocock-wrapper/.claude-plugin/marketplace.json`
-  back to `"source": "github"` shorthand. Vince had added a GitHub SSH key
-  offline between sessions, so the Gotcha 1 SSH-key-missing condition is
-  resolved. The `github` form gives a full working tree and avoids the
-  Gotcha 3 sparse-checkout trap on future reinstalls.
-- Updated `docs/pocock-skills-guide.md`: reframed Gotcha 1 around the
-  SSH-key prerequisite, added Gotcha 3 (sparse-checkout trap with symptoms
-  + live-fix command), rewrote the Safety audit section with verified
-  findings + scope caveats.
+**Open / next steps:**
+- **If the Friday 2026-06-05 meeting has happened**, capture the end
+  user's answers RQ-by-RQ in a notes doc under `collateral/` (e.g.
+  `collateral/2026-06-05-brainstorm-notes.md` — keep PII in the
+  gitignored space), then update `CONTEXT.md` with the resolved "excess
+  solar" and "mostly free" terms, and re-rank §7 viability Q1–Q4 based
+  on Vue ETA + account access + EVSE failure model.
+- **If the meeting hasn't happened yet**, the agenda (in `collateral/`)
+  is ready to walk into; no further prep needed.
+- Once viability re-ranking is done, kick off desk research on the
+  top-ranked question. Q1 (Emporia API) remains the highest
+  blocker-risk candidate barring new info.
+- If RQ8 came back "unredact," do that as a separate dedicated commit
+  ("Restore end-user attribution") per `CLAUDE.local.md`.
 
-**Open / next steps (next session, after Claude Code restart):**
-- **Restart Claude Code first** — the plugin loader runs at startup and
-  the SKILL.md files materialized mid-session, so slash commands won't
-  register until you restart.
-- Confirm `/setup-matt-pocock-skills` appears, then run it to scaffold the
-  `## Agent skills` block in this CLAUDE.md plus
-  `docs/agents/{issue-tracker,triage-labels,domain}.md`.
-  Issue tracker = GitHub (this repo has a GitHub remote).
-- If `/setup-matt-pocock-skills` still says "Unknown command" after
-  restart, the Gotcha 3 diagnostic checklist in
-  `docs/pocock-skills-guide.md` is the first place to look.
-- Run `/grill-with-docs` against `docs/requirements.md` to sharpen the
-  viability question(s) — pre-Friday brainstorm prep.
-- Use the grill output to draft the Friday 2026-06-05 ~4 PM agenda /
-  questions list for Roger. (Note: Friday IS 2026-06-05 — if the
-  brainstorm has already happened by the time you read this, update the
-  Project Status checklist above and capture any new context from it.)
-
-**Decisions made (this session):**
-- marketplace.json source type: **`"source": "github"` shorthand** is now
-  the right form on this machine — Vince's offline-added SSH key resolved
-  the original Gotcha 1 condition. Stick with the shorthand on future
-  reinstalls; only fall back to `git-subdir` if SSH stops working.
-- Don't blindly trust a model's claim that it audited a plugin — verify
-  files were actually present in the path being audited. The 2026-06-03
-  "audit" was probably looking at a different clone (or zero files) and
-  got several details wrong without flagging uncertainty.
-
-**Decisions carried forward (still apply):**
+**Standing decisions:**
 - Project type: **app** (no agent persona, no `prompts/` directory).
-- Project name: `solar-sync` (kept).
+- Project name: `solar-sync`.
 - Python tooling: **deferred** — don't scaffold until stack is chosen.
 - UI automation is a legitimate fallback, not just a last resort.
-- Pocock skills plugin install location: user scope, via personal wrapper
-  marketplace (reusable across all of Vince's projects on this machine).
+- Pocock skills plugin: user scope, via personal wrapper marketplace.
+- `marketplace.json` source type: `"source": "github"` shorthand (SSH
+  key on this machine; fall back to `git-subdir` only if SSH breaks).
+- Issue tracker: **GitHub Issues** at `vebutton/solar-sync` via `gh` CLI.
+- Triage labels: **canonical defaults** (no remapping).
+- Domain layout: **single-context** (`CONTEXT.md` + `docs/adr/` at root).
+- Friday brainstorm artifacts (agenda, notes) live in `collateral/`
+  (gitignored), not `docs/` — PII redaction per `CLAUDE.local.md`.
+- Session State pattern: per-session narratives in
+  `docs/session-history/`; this section holds only standing state + the
+  latest session-log pointer.
