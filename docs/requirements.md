@@ -59,15 +59,48 @@ mode that captures the step-5 bias logic.
 
 ## 4. Functional requirements
 
+### 4.0 Decision model — the end user's 4-mode tree (2026-06-06)
+
+the end user's own pencil notes (dropped between the 2026-06-05 brainstorm and
+the 2026-06-06 follow-up) give the canonical mental model for what
+solar-sync decides moment-to-moment. The four modes are *what the end
+user wants to choose between*; F1–F5 below implement them.
+
+| # | Mode                         | Behavior                                                                                                                                                                                                                       |
+|---|------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| 1 | **Don't charge**             | EVSE off regardless of solar state.                                                                                                                                                                                            |
+| 2 | **Charge when free**         | Charge only when `Production > Usage + planned EVSE draw`. the end user's intended EV draw band is **1.5–3 kW**, which maps to his 6–12A practical amp range — whether the 1.5–3 kW figure denotes draw, margin, or his solar peak still needs confirming with him. The check is **forward-looking** — it must account for the load the EVSE itself will add, not just instantaneous Usage. |
+| 3 | **Charge to prevent export** | Titrate amps so Net excess (`Production − Usage`) tracks toward zero — i.e. consume excess locally rather than export it. Configurable import-allowed level for when production momentarily dips.                              |
+| 4 | **Always charge**            | EVSE on regardless of solar state. Force-charge (e.g. long-trip prep).                                                                                                                                                         |
+
+Modes 1 and 4 are bypass states. Modes 2 and 3 are the algorithmic
+modes; they differ in *direction*: mode 2 requires Net excess ≥ the
+planned EV draw before enabling (solar must already cover the load the
+EVSE is about to add); mode 3 tolerates a configurable level of import
+below zero excess before pausing.
+
+> **Tension with the Slider direction.** A standing decision in
+> `CONTEXT.md` (term: *Slider*) and `CLAUDE.md` collapses all
+> configurable behavior into a single 0–100% control. the end user's pencil
+> notes instead frame the problem as a **discrete mode picker with
+> per-mode settings**. Reconciling these is an OPEN UX question — see
+> §6.
+
 ### MUST
 - **F1.** Read live (or near-live) whole-house power and solar production data.
 - **F2.** Issue start, pause, and "set max amps" commands to the Emporia EVSE.
-- **F3.** Configurable thresholds — at minimum: enable-charging threshold,
-  disable-charging threshold, hysteresis time.
-- **F4.** "Mostly free" mode — accept a configurable fraction of solar coverage
-  (e.g. 50%, 80%) rather than 100%.
-- **F5.** Manual override — the user must be able to force-charge (long-trip case)
-  or force-pause without uninstalling the app.
+- **F3.** Configurable thresholds for the algorithmic modes (see §4.0):
+  the *headroom required* in mode 2 (Charge when free), the
+  *import-allowed level* in mode 3 (Charge to prevent export), and the
+  hysteresis time both share. Mode 2's check is forward-looking — it
+  must include the EVSE's own planned draw, not just instantaneous Usage.
+- **F4.** Mode selection — the end user must be able to choose between
+  the four modes in §4.0, and within each algorithmic mode set its
+  threshold. Subsumes the earlier "mostly free" framing. (UX surface
+  for this is OPEN — see §6.)
+- **F5.** Manual override = modes 1 (Don't charge) and 4 (Always
+  charge). These bypass states must be reachable in one or two taps
+  without uninstalling or reconfiguring the app.
 
 ### SHOULD
 - **S1.** Continuously adjust amps to track available excess (not just on/off).
@@ -98,10 +131,34 @@ mode that captures the step-5 bias logic.
 
 ## 6. Interface / stack — **OPEN**
 
+### Platform choice
+
 Vince's preference order: **web app → Android app → iOS app**. Not a Pi/STM32
 daemon, not a CLI tool. Final decision blocked on viability research — UI
 automation, for example, almost certainly forces Android (or a controlled
 Android emulator).
+
+### UX surface — **OPEN** (added 2026-06-06)
+
+the end user's 4-mode tree (§4.0) and the prior single-Slider direction
+(`CONTEXT.md → Slider`) are two different mental models for the same
+control problem. Decide before the PRD pass:
+
+- **Mode picker + per-mode settings.** Honors the end user's mental model
+  directly: a four-way picker; modes 2 and 3 each reveal one numeric
+  control. Maps 1:1 to what he drew on paper.
+- **Single slider** (the standing decision from 2026-06-05). One
+  continuous 0–100% knob; the mode is *inferred* from where the user
+  lands. Visually clean; obscures the *kind* of decision being made
+  and asks the user to translate from his own mental model into ours.
+- **Both** (modes as preset positions on the slider, with fine-tune).
+  Possibly the worst of both worlds — every UI element costs
+  explanation.
+
+Lean toward the mode picker: the end user described the four modes verbatim,
+unprompted, in his own pencil notes. That is strong evidence that the
+modes match his mental model better than a slider does. Defer the
+final call to his reaction.
 
 ## 7. Viability research — **the headline OPEN question**
 

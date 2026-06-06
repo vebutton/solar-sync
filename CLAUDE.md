@@ -115,15 +115,23 @@ Bootstrap phase. Viability research begins next.
 - [ ] First end-to-end "decide and act" loop running against real user data
 
 ## Session State
-**Last updated:** 2026-06-05 — Friday brainstorm captured; viability
-research is the next active phase.
-**Session log:** [docs/session-history/2026-06-05-brainstorm-meeting.md](docs/session-history/2026-06-05-brainstorm-meeting.md)
+**Last updated:** 2026-06-06 — the end user dropped a pencil-note
+4-mode decision tree (async, between the 2026-06-05 brainstorm and the
+next live session); `docs/requirements.md` §4.0 + §6 and `CONTEXT.md`
+(new *Decision mode* term, Slider demoted to provisional) updated to
+match. Viability research is still the next active phase.
+**Session log:** [docs/session-history/2026-06-06-end-user-pencil-notes.md](docs/session-history/2026-06-06-end-user-pencil-notes.md)
 (per-session narratives live in `docs/session-history/` — load on demand
 for accomplishments + per-session decision context).
 
 **Open / next steps:**
-- Desk-research the HA Emporia integration (Q1 lead). Verify it
-  controls the end user's specific EVSE model.
+- Desk-research the HA Emporia integration (Q1 lead) — the end user
+  pointed at `magico13/ha-emporia-vue`
+  (https://github.com/magico13/ha-emporia-vue) on 2026-06-06.
+  Caveat: the repo name says "Vue" (energy monitor) — confirm whether
+  it also surfaces charger entities (start/pause + set amps) for
+  the end user's Emporia Classic L2 EVSE, or if only the upstream `PyEmVue`
+  library exposes that.
 - Desk-research Vue local API (Q4). Deliver a verdict to the end user
   so he can decide whether to (re-)buy.
 - Resolve the stack tension between the end user's "dumb device"
@@ -154,9 +162,17 @@ for accomplishments + per-session decision context).
   Base battery is abstracted as part of "the grid" (RQ1).
 - **Algorithm philosophy:** titrate EV amps so net export → 0; enable
   at ≥ 0.1 kW Net excess; respect the amp-ceiling hierarchy (RQ2 / RQ6).
-- **UX direction:** a single 0–100% Slider collapses F4 + F5 in
-  `docs/requirements.md` (RQ3). Not yet design-locked or ADR-recorded;
-  pending the PRD pass.
+- **UX direction (provisional).** the end user's 4-mode decision tree
+  (`docs/requirements.md` §4.0; `CONTEXT.md → Decision mode`) is the
+  canonical mental model — he wrote the four modes verbatim,
+  unprompted, on 2026-06-06. The single-Slider sketch from the
+  2026-06-05 brainstorm is **held as provisional** (Slider term in
+  `CONTEXT.md` flagged accordingly). A mode picker currently fits
+  the end user's framing best; a slider-shaped variant may resurface during
+  the PRD pass, most plausibly *inside* mode 2 (the 1.5–3 kW EV draw
+  band) rather than as the top-level control. UX surface remains OPEN
+  (`docs/requirements.md` §6) until viability and the end user's reaction are
+  in.
 - **Amp ceiling hierarchy:** 6A floor / 12A auto-mode / 40A override /
   48A Dedicated Breaker (RQ6). All configurable, not hardcoded.
 - **AI is off the credential path.** Account-touching code must be
