@@ -91,42 +91,49 @@ Default canonical names: `needs-triage`, `needs-info`, `ready-for-agent`, `ready
 Single-context: one `CONTEXT.md` + `docs/adr/` at the repo root (neither exists yet — `/grill-with-docs` creates them lazily). See `docs/agents/domain.md`.
 
 ## Project Status
-Bootstrap phase. Pre-viability research. Friday 2026-06-05 ~4 PM end-user
-brainstorm prep complete; meeting itself not yet captured.
+Bootstrap phase. Viability research begins next.
 
 - [x] Pocock skills installed + verified; per-repo config scaffolded
       (`docs/agents/*.md`, `CONTEXT.md` seeded)
-- [x] Friday 2026-06-05 brainstorm agenda drafted (local-only in
-      `collateral/` — gitignored to keep end-user PII out of the repo)
-- [ ] Conduct the Friday 2026-06-05 brainstorm with the end user (the meeting itself)
-- [ ] Capture the end user's answers; resolve "excess solar" + "mostly free" into
-      `CONTEXT.md`; re-rank §7 viability Q1–Q4
-- [ ] Viability research on the top-ranked question(s)
+- [x] Friday 2026-06-05 brainstorm with the end user — agenda + meeting
+      complete; 8 RQs captured; `CONTEXT.md` and `docs/requirements.md`
+      §7 updated with the resolutions
+- [ ] **Viability Q1 (Emporia EVSE API)** — desk-research the HA
+      community Emporia integration the end user pointed to; verify it
+      controls his specific EVSE model
+- [ ] **Viability Q4 (Vue local API)** — determine whether Vue
+      publishes locally; deliver a yes/no/maybe verdict to the end
+      user (his Vue (re-)purchase is gated on this)
+- [ ] **Stack decision** — resolve the dumb-device-vs-Linux-stack
+      tension (STM32 / Pi + auto-update / Android-on-Pixel / hybrid)
+- [ ] Investigate EVSE cold-start-without-WAN fragility (observed twice)
+- [ ] Identify a backup phone for any invasive experiments
+      (ADB / UI automation / mitmproxy)
 - [ ] Decide build path: vendor APIs vs. UI automation vs. hybrid
+      (depends on Q1 + Q4 outcomes)
 - [ ] PRD (`to-prd`) once viability is settled
 - [ ] First end-to-end "decide and act" loop running against real user data
 
 ## Session State
-**Last updated:** 2026-06-05 — Pocock per-repo config scaffolded + Friday
-brainstorm agenda drafted.
-**Session log:** [docs/session-history/2026-06-05-grill-with-docs.md](docs/session-history/2026-06-05-grill-with-docs.md)
+**Last updated:** 2026-06-05 — Friday brainstorm captured; viability
+research is the next active phase.
+**Session log:** [docs/session-history/2026-06-05-brainstorm-meeting.md](docs/session-history/2026-06-05-brainstorm-meeting.md)
 (per-session narratives live in `docs/session-history/` — load on demand
 for accomplishments + per-session decision context).
 
 **Open / next steps:**
-- **If the Friday 2026-06-05 meeting has happened**, capture the end
-  user's answers RQ-by-RQ in a notes doc under `collateral/` (e.g.
-  `collateral/2026-06-05-brainstorm-notes.md` — keep PII in the
-  gitignored space), then update `CONTEXT.md` with the resolved "excess
-  solar" and "mostly free" terms, and re-rank §7 viability Q1–Q4 based
-  on Vue ETA + account access + EVSE failure model.
-- **If the meeting hasn't happened yet**, the agenda (in `collateral/`)
-  is ready to walk into; no further prep needed.
-- Once viability re-ranking is done, kick off desk research on the
-  top-ranked question. Q1 (Emporia API) remains the highest
-  blocker-risk candidate barring new info.
-- If RQ8 came back "unredact," do that as a separate dedicated commit
-  ("Restore end-user attribution") per `CLAUDE.local.md`.
+- Desk-research the HA Emporia integration (Q1 lead). Verify it
+  controls the end user's specific EVSE model.
+- Desk-research Vue local API (Q4). Deliver a verdict to the end user
+  so he can decide whether to (re-)buy.
+- Resolve the stack tension between the end user's "dumb device"
+  preference (STM32) and the Linux/Python needs of the HA path.
+  Candidates: Pi + auto-updating OS, Android app on the Pixel,
+  STM32 + custom Emporia client, hybrid.
+- Investigate the EVSE cold-start-without-WAN fragility (observed
+  twice). Does the HA integration handle it?
+- Identify a spare phone before any ADB / UI-automation / mitmproxy
+  experiment.
 
 **Standing decisions:**
 - Project type: **app** (no agent persona, no `prompts/` directory).
@@ -134,13 +141,31 @@ for accomplishments + per-session decision context).
 - Python tooling: **deferred** — don't scaffold until stack is chosen.
 - UI automation is a legitimate fallback, not just a last resort.
 - Pocock skills plugin: user scope, via personal wrapper marketplace.
-- `marketplace.json` source type: `"source": "github"` shorthand (SSH
-  key on this machine; fall back to `git-subdir` only if SSH breaks).
+- `marketplace.json` source type: `"source": "github"` shorthand.
 - Issue tracker: **GitHub Issues** at `vebutton/solar-sync` via `gh` CLI.
 - Triage labels: **canonical defaults** (no remapping).
 - Domain layout: **single-context** (`CONTEXT.md` + `docs/adr/` at root).
-- Friday brainstorm artifacts (agenda, notes) live in `collateral/`
+- Brainstorm artifacts (agenda, notes) live in `collateral/`
   (gitignored), not `docs/` — PII redaction per `CLAUDE.local.md`.
 - Session State pattern: per-session narratives in
   `docs/session-history/`; this section holds only standing state + the
   latest session-log pointer.
+- **"Excess solar"** resolves to **Net excess** (`Production − Usage`);
+  Base battery is abstracted as part of "the grid" (RQ1).
+- **Algorithm philosophy:** titrate EV amps so net export → 0; enable
+  at ≥ 0.1 kW Net excess; respect the amp-ceiling hierarchy (RQ2 / RQ6).
+- **UX direction:** a single 0–100% Slider collapses F4 + F5 in
+  `docs/requirements.md` (RQ3). Not yet design-locked or ADR-recorded;
+  pending the PRD pass.
+- **Amp ceiling hierarchy:** 6A floor / 12A auto-mode / 40A override /
+  48A Dedicated Breaker (RQ6). All configurable, not hardcoded.
+- **AI is off the credential path.** Account-touching code must be
+  small enough for the end user to audit via independent AI (Bing
+  Chat / Copilot) before running (RQ5).
+- **Stop semantics:** rely on the car's SOC cap (Cadillac Lyriq app
+  slider) as the durable stop signal — solar-sync's "stop" is just
+  "amps → 0 or EVSE pause," no force-pause primitive needed (RQ4).
+- **Project narrative leads with summer AC-frustration relief**; kWh
+  savings is the secondary framing (RQ7).
+- **PII redaction stays in force** (RQ8). `CLAUDE.local.md` identity
+  mapping unchanged.

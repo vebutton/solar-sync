@@ -107,6 +107,51 @@ Android emulator).
 
 Before any meaningful build, we need to answer:
 
+### Post-meeting status (2026-06-05)
+
+After the 2026-06-05 brainstorm with the end user (notes in
+`collateral/2026-06-05-brainstorm-notes.md`, gitignored), the priority
+order changes:
+
+1. **Q1 (Emporia EVSE API) — top priority.** The end user pointed to
+   an existing Home Assistant community Emporia integration (likely a
+   HACS project). If that proves out against his specific EVSE, the
+   vendor-API path is the leading design.
+2. **Q4 (Vue local API) — second priority, purchase-gated.** The end
+   user is willing to (re-)buy a Vue current tap *if it meaningfully
+   helps solar-sync*. We owe him a yes/no/maybe verdict before he
+   commits. If Vue publishes data locally, it can replace Base as
+   solar-sync's input signal — collapsing the architecture to a single
+   vendor (Emporia) for both input and output.
+3. **Q2 (Base API) — deprioritized but live.** If Q4 succeeds, Q2 may
+   become moot. If Q4 fails, Q2 escalates and likely requires the
+   mitmproxy path (with the constraints below).
+4. **Q3 (UI automation) — deferred indefinitely.** Tightened access
+   constraints from the meeting (see below) make this much harder than
+   originally framed.
+
+### Access constraints (from the 2026-06-05 meeting)
+
+- **AI is off the credential path.** Anything that touches the end
+  user's accounts is done either in-person side-by-side, or via small
+  auditable scripts he can verify with an independent AI (Bing Chat /
+  Copilot) before running. solar-sync's credential-handling code must
+  stay small enough to survive that audit.
+- **Daily-driver Pixel is off-limits for dev mode.** Any invasive
+  experimentation (ADB, traffic snooping, UI automation prototyping)
+  requires a **spare phone** — identifying that phone is a precondition.
+- **mitmproxy is last-resort.** Snooping only (no injection); AI off
+  the live-capture path; analysis happens out-of-band on saved files.
+
+### EVSE cold-start fragility (from the 2026-06-05 meeting)
+
+The end user has observed twice that the Emporia EVSE struggles to
+start charging after a cold-start without WAN connectivity. Worth a
+research item: does the HA Emporia integration handle this case, or
+is power-cycling required?
+
+---
+
 ### Q1. Does **Emporia** expose a controllable API for the Classic EVSE?
 - Official API? Documented? Stable?
 - Unofficial community libraries (HACS / Home Assistant integrations / GitHub)?
