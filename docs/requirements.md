@@ -164,11 +164,11 @@ final call to his reaction.
 
 Before any meaningful build, we need to answer:
 
-### Post-meeting status (2026-06-05)
+### Post-meeting status (updated 2026-06-06)
 
 After the 2026-06-05 brainstorm with the end user (notes in
-`collateral/2026-06-05-brainstorm-notes.md`, gitignored), the priority
-order changes:
+`collateral/2026-06-05-brainstorm-notes.md`, gitignored) and the
+2026-06-06 async drop, the priority order is:
 
 1. **Q1 (Emporia EVSE API) — top priority.** The end user pointed to
    an existing Home Assistant community Emporia integration (likely a
@@ -186,6 +186,13 @@ order changes:
 4. **Q3 (UI automation) — deferred indefinitely.** Tightened access
    constraints from the meeting (see below) make this much harder than
    originally framed.
+5. **Q5 (Smartcar / car-side API) — added 2026-06-06, orthogonal to
+   the v1 critical path.** The end user pointed at
+   `smartcar.com/pricing` as an option for reading live SOC (and
+   possibly writing the charge limit) from the Cadillac Lyriq.
+   Useful enhancement but does not displace the Emporia path — it
+   talks to the *car*, not the EVSE. Slot as deferred enhancement;
+   revisit when v1 viability (Q1, Q4) is settled.
 
 ### Access constraints (from the 2026-06-05 meeting)
 
@@ -238,6 +245,71 @@ is power-cycling required?
 - Does Vue publish its readings *independently* of Emporia's cloud (e.g. a local
   MQTT stream, a published-by-the-device API)?
 - If yes, that's a much cleaner data source than driving the Base app.
+
+### Q5. **Smartcar** or any other car-side API (added 2026-06-06)
+
+URL the end user pointed at: https://smartcar.com/pricing.
+
+Smartcar is a third-party broker wrapping multiple OEM connected-car
+APIs behind a single OAuth surface. If usable for the end user's
+Cadillac Lyriq it would let solar-sync *read* live SOC (a signal
+currently visible only to the human in the Cadillac app) and possibly
+*write* the charge limit, start, and stop on the car side. Today the
+durable stop in solar-sync is the target-SOC slider the end user
+maintains by hand in the Cadillac app — see standing decision in
+`CLAUDE.md`. Reading SOC live would let solar-sync stop *dynamically*
+and would unlock the SOC-driven curve sketched at the 2026-06-05
+brainstorm (20% → force / 50% → 70% solar OK / 70%+ → wait for sun).
+
+**Pricing as of 2026-06-06 (per smartcar.com/pricing):**
+
+| Tier   | Floor cost                              | Vehicles  | Commands/mo | Notes                                                                |
+|--------|-----------------------------------------|-----------|-------------|----------------------------------------------------------------------|
+| Free   | $0                                      | 1         | **0**       | "Limited vehicle signals." Read-only — no `commands` (start/stop/set).|
+| Build  | "Starting at $1.99 / vehicle / app / mo"| up to 100 | 100         | Build Basic / Advanced / Premium variants (depth unknown).            |
+| Custom | Negotiated                              | 500 min   | Tailored    | Enterprise; not in scope for a single-vehicle hobby project.          |
+
+For the end user's case (1 VIN, low command volume), the **Build
+floor is ~$1.99/mo** — roughly 20% of the project's ~$10/mo upside
+per §1, *if* the floor really is the all-in number for the
+sub-features we need. Acceptable. The Free tier's **0 commands/mo**
+means any *write* (start, stop, set-limit) requires Build.
+
+**Still open before Smartcar becomes a build path:**
+
+- **Q5.a — OEM coverage.** Is the Cadillac Lyriq supported, and at
+  what feature depth (signals only / signals + commands)? The
+  pricing page does not list OEMs — needs the "Compatible brands"
+  page and possibly OEM-specific docs.
+- **Q5.b — Endpoint-to-tier mapping.** Specifically: is the battery
+  state (SOC) endpoint included in Free-tier "limited signals," or
+  gated to Build? Same question for `charging.start/stop` and
+  `set charge limit`.
+- **Q5.c — Credential-path fit.** Smartcar's OAuth puts *the end
+  user* in the consent flow — that aligns with the **RQ5 "AI off
+  the credential path"** constraint. But every command call carries
+  a token; solar-sync's command-issuing code must stay small enough
+  to audit per RQ5.
+- **Q5.d — Reliability lattice.** Adding Smartcar makes solar-sync
+  depend on three vendor surfaces (Base + Emporia + Smartcar) plus
+  GM's connected-car backend behind Smartcar. Each link is a
+  potential outage. Define explicitly: when Smartcar is unreachable
+  but Emporia and Base are fine, solar-sync falls back to amp
+  titration with the human-set SOC cap as today.
+
+**Two architectures Smartcar enables:**
+
+1. **Read-only (Free or Build).** solar-sync reads live SOC;
+   control stays purely Emporia-side. The Cadillac app still owns
+   the durable stop. Cheap and small.
+2. **Read + write (Build tier, ~$1.99/mo).** solar-sync reads SOC
+   *and* writes the charge limit / start / stop. Displaces the
+   Cadillac app on the car side. Lives squarely under the RQ5
+   credential-audit lens.
+
+Neither displaces the Emporia path — Smartcar talks to the car, not
+the EVSE. The EVSE remains how solar-sync titrates amps in response
+to Net excess.
 
 ### Output of viability research
 A short written verdict per question (yes / no / probably-with-X) plus the

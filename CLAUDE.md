@@ -104,6 +104,12 @@ Bootstrap phase. Viability research begins next.
 - [ ] **Viability Q4 (Vue local API)** — determine whether Vue
       publishes locally; deliver a yes/no/maybe verdict to the end
       user (his Vue (re-)purchase is gated on this)
+- [ ] **Viability Q5 (Smartcar / car-side API)** — orthogonal to
+      v1 critical path; deferred enhancement. End user pointed at
+      `smartcar.com/pricing` on 2026-06-06. Open sub-questions
+      (Lyriq coverage, free-tier SOC read, command-tier mapping,
+      RQ5 credential-path fit) captured in `docs/requirements.md`
+      §7 Q5
 - [ ] **Stack decision** — resolve the dumb-device-vs-Linux-stack
       tension (STM32 / Pi + auto-update / Android-on-Pixel / hybrid)
 - [ ] Investigate EVSE cold-start-without-WAN fragility (observed twice)
@@ -115,11 +121,14 @@ Bootstrap phase. Viability research begins next.
 - [ ] First end-to-end "decide and act" loop running against real user data
 
 ## Session State
-**Last updated:** 2026-06-06 — the end user dropped a pencil-note
-4-mode decision tree (async, between the 2026-06-05 brainstorm and the
-next live session); `docs/requirements.md` §4.0 + §6 and `CONTEXT.md`
-(new *Decision mode* term, Slider demoted to provisional) updated to
-match. Viability research is still the next active phase.
+**Last updated:** 2026-06-06 — two async drops from the end user:
+(a) the pencil-note 4-mode decision tree → `docs/requirements.md`
+§4.0 + §6 and `CONTEXT.md` (new *Decision mode* term, Slider demoted
+to provisional); (b) `smartcar.com/pricing` as a car-side API lead →
+new Q5 in `docs/requirements.md` §7 (Lyriq coverage, Free-tier
+endpoint mapping, credential-path fit still open). Viability research
+is still the next active phase; Q5 is an orthogonal enhancement, not
+on the v1 critical path.
 **Session log:** [docs/session-history/2026-06-06-end-user-pencil-notes.md](docs/session-history/2026-06-06-end-user-pencil-notes.md)
 (per-session narratives live in `docs/session-history/` — load on demand
 for accomplishments + per-session decision context).
@@ -134,6 +143,13 @@ for accomplishments + per-session decision context).
   library exposes that.
 - Desk-research Vue local API (Q4). Deliver a verdict to the end user
   so he can decide whether to (re-)buy.
+- Desk-research **Smartcar** (Q5) before committing it to v1 or v2.
+  Two reads needed: (a) Smartcar's "Compatible brands" page — confirm
+  Cadillac Lyriq is supported and at what feature depth; (b) the
+  Smartcar API docs — confirm whether `battery state` (SOC) is in the
+  Free tier's "limited signals," and whether `charging.start/stop` +
+  `set charge limit` map to Build Basic vs Advanced vs Premium. Both
+  reads are public web; no auth.
 - Resolve the stack tension between the end user's "dumb device"
   preference (STM32) and the Linux/Python needs of the HA path.
   Candidates: Pi + auto-updating OS, Android app on the Pixel,
