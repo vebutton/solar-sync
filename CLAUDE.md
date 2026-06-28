@@ -11,56 +11,73 @@ channel. (Real names + locale live in `CLAUDE.local.md`, gitignored.)
 **solar-sync** automates the user's EV charging so it draws from rooftop solar
 *excess* rather than grid power. The user's existing **Emporia Energy** Android
 app has an "Excess Solar" mode but it's too rigid (1.5 kW minimum, 3-min
-hysteresis, no custom thresholds). The user wants configurable thresholds
-(e.g. ~0.5 kW export / ~1.5 kW import) and a "mostly free" mode that still
-charges when excess is *most* but not *all* of the load. Today the user
-eyeballs the **Base Power** app and manually toggles the Emporia charger —
-solar-sync replaces that manual loop.
+hysteresis, no custom thresholds). The user wants configurable thresholds and
+a "mostly free" mode that still charges when excess is *most* but not *all* of
+the load.
 
-**This project is in the viability phase.** The headline open question is whether
-Emporia and Base expose any API surface at all, or whether their ecosystems are
-locked down. If APIs are closed, the fallback POC is **UI automation** — drive the
-two Android apps (or their web equivalents) the way a human would. Both paths are on
-the table until Friday's brainstorm with the end user.
+**Major pivot, 2026-06-28.** The end user built the integration plane himself
+between 2026-06-16 and 2026-06-28 while Vince was heads-down on other work.
+He dropped Base Power as the data source, surfaced his **Enphase Envoy** local
+API instead (already on his LAN), wired in the consumption current taps
+Enphase had shipped him originally, and stood up **Home Assistant on a
+Raspberry Pi 5** as the control plane. HA can now read `Current net power
+consumption` (signed: + import / − export) and start/stop/throttle the
+Emporia EVSE via a community integration's charger-entities branch. The
+viability questions about Emporia and Base APIs are largely settled — not by
+research, but by the end user changing the question. **What's left is the
+decision logic** (mode picker + titration loop), not the integration plane.
 
 - **Full requirements & open questions:** [docs/requirements.md](docs/requirements.md)
+- **The pivot, in detail:** [docs/session-history/2026-06-28-end-user-pivot-to-ha.md](docs/session-history/2026-06-28-end-user-pivot-to-ha.md)
 
 ## Input / Output
-- **Input (read):** real-time house power usage and solar production from Base Power
-  Company (their current tap → Base app). Eventually also the Emporia Vue current
-  tap the user is ordering.
-- **Output (write):** EV charger commands to the Emporia Classic Level 2 EVSE —
-  start/pause and max-amps (6–48A, the user's practical range is 6–11A).
-- **Decision logic:** turn charger on when excess solar exceeds a configurable
-  threshold; adjust amps to track available excess; pause when excess drops below
-  a configurable lower threshold (with hysteresis).
+- **Input (read):** `Current net power consumption` from the Enphase Envoy
+  local API (already on the end user's LAN). Single signed signal: positive
+  = importing from grid, negative = exporting. Solar production is also
+  available from the same Envoy if needed.
+- **Output (write):** EV charger commands to the Emporia Classic Level 2 EVSE
+  via the Home Assistant community Emporia integration — start/pause and
+  max-amps (6–48A, the user's practical range is 6–11A).
+- **Decision logic:** mode-picker on top of a titration loop. Modes range
+  from OFF / Solar Only / mixed (configurable import budget) / fixed-rate
+  override. Loop: titrate amps so net export → 0 (or → a target import for
+  hybrid modes), with hysteresis + per-step dwell time.
 
 ## Interface
-**Target stack is TBD — to be decided after the viability research.** Vince's
-preference order: **web app** (the user can hit it from a Pixel browser) → **Android
-app** (native) → **iOS app** (worst case). Not a Pi/STM32 daemon and not a CLI tool.
+**HA dashboard on the Pi, served over the LAN.** The end user hits it from
+his Pixel browser — same UX shape as the original "web app" preference, now
+provided by HA's web UI rather than something we build. The 2026-06-06
+4-mode pencil tree is still the canonical mental model; the 2026-06-28
+proposal expands it to 7 modes (see session log).
 
 ## Key Integrations
-- Claude API / Claude Code (development)
-- **Base Power Company** — house power + solar production data source. API surface
-  unknown; investigation needed.
-- **Emporia Energy** — EVSE control (start/pause, set max amps). API surface
-  unknown; some unofficial community libraries may exist.
-- Fallback: Android UI automation (Appium / ADB / accessibility services) if both
-  vendor APIs are inaccessible.
+- Claude API / Claude Code (development).
+- **Enphase Envoy** — local published API on the end user's LAN. Source of
+  net power consumption + solar production. Replaces Base Power as the data
+  source.
+- **Emporia Energy** EVSE — controlled via the Home Assistant community
+  Emporia integration's charger-entities PR branch (not upstream stable).
+  Cloud-mediated.
+- **Home Assistant** on Raspberry Pi 5 — the control plane. Runs the
+  automation (mode picker + titration loop).
+- **Base Power** — dropped as a data source. Still relevant as the household
+  battery / grid abstraction for understanding flows; not consumed by the
+  software.
 
 ## Tech / Tooling
-Language and framework deferred until the stack decision (web/Android/iOS). **Do not
-default to Python or scaffold `pyproject.toml`** — the bootstrap's Python tooling
-step does not apply here yet.
+**Stack is now settled.** Home Assistant OS on a Raspberry Pi 5. The
+automation runtime is HA-native: YAML for triggers and entity glue, and
+**`pyscript` or `AppDaemon`** for the titration control loop (real Python,
+testable — pure YAML gets ugly fast for threshold + hysteresis + dwell-time
+logic). UI automation (Appium / ADB) is no longer on the table.
 
 **Dev process:** follow **Matt Pocock's 7-step process** — see
 [collateral/Pocock-7-step-process.md](collateral/Pocock-7-step-process.md) (local
 only, gitignored). Pocock's skills plugin (`mattpocock-skills`) is installed at
 user scope; install recipe + gotchas + per-skill notes live in
-[docs/pocock-skills-guide.md](docs/pocock-skills-guide.md). First step on next
-session: run `/setup-matt-pocock-skills` (one-time per repo), then
-`/grill-with-docs` against `docs/requirements.md` for Step 1 (Idea).
+[docs/pocock-skills-guide.md](docs/pocock-skills-guide.md). Now that the
+stack is real, the natural next Pocock step is **`/to-prd`** (the integration
+unknowns that blocked the PRD are resolved).
 
 ## How to Work With This User
 - Friday 2026-06-05 ~4 PM is the next live working session with the end user;
@@ -91,79 +108,93 @@ Default canonical names: `needs-triage`, `needs-info`, `ready-for-agent`, `ready
 Single-context: one `CONTEXT.md` + `docs/adr/` at the repo root (neither exists yet — `/grill-with-docs` creates them lazily). See `docs/agents/domain.md`.
 
 ## Project Status
-Bootstrap phase. Viability research begins next.
+Integration plane shipped (by the end user, on his hardware). Decision-logic
+phase begins next.
 
 - [x] Pocock skills installed + verified; per-repo config scaffolded
       (`docs/agents/*.md`, `CONTEXT.md` seeded)
 - [x] Friday 2026-06-05 brainstorm with the end user — agenda + meeting
       complete; 8 RQs captured; `CONTEXT.md` and `docs/requirements.md`
       §7 updated with the resolutions
-- [ ] **Viability Q1 (Emporia EVSE API)** — desk-research the HA
-      community Emporia integration the end user pointed to; verify it
-      controls his specific EVSE model
-- [ ] **Viability Q4 (Vue local API)** — determine whether Vue
-      publishes locally; deliver a yes/no/maybe verdict to the end
-      user (his Vue (re-)purchase is gated on this)
-- [ ] **Viability Q5 (Smartcar / car-side API)** — orthogonal to
-      v1 critical path; deferred enhancement. End user pointed at
-      `smartcar.com/pricing` on 2026-06-06. Open sub-questions
-      (Lyriq coverage, free-tier SOC read, command-tier mapping,
-      RQ5 credential-path fit) captured in `docs/requirements.md`
-      §7 Q5
-- [ ] **Stack decision** — resolve the dumb-device-vs-Linux-stack
-      tension (STM32 / Pi + auto-update / Android-on-Pixel / hybrid)
-- [ ] Investigate EVSE cold-start-without-WAN fragility (observed twice)
-- [ ] Identify a backup phone for any invasive experiments
-      (ADB / UI automation / mitmproxy)
-- [ ] Decide build path: vendor APIs vs. UI automation vs. hybrid
-      (depends on Q1 + Q4 outcomes)
-- [ ] PRD (`to-prd`) once viability is settled
+- [x] **Viability Q1 (Emporia EVSE API)** — resolved 2026-06-26 by the
+      end user. Community Emporia integration's charger-entities PR
+      branch loaded in HA; start/stop/throttle confirmed working
+- [x] **Viability Q4 (Vue local API)** — moot 2026-06-16. End user
+      pivoted off Vue entirely to Enphase consumption taps (already
+      in his possession). No (re-)purchase needed
+- [x] **Stack decision** — resolved 2026-06-21. HA on a Raspberry Pi 5.
+      Not STM32, not Android-on-Pixel
+- [x] **Integration plane** — built by the end user 2026-06-16 → 2026-06-28
+      (data source: Enphase Envoy local API; control: HA + community
+      Emporia integration)
+- [ ] **Confirm mode-list typo** — mode 3 likely should be "75% Solar
+      Charge", not "50%". Verify with end user before building
+- [ ] **Decision logic / titration loop** — `pyscript` or `AppDaemon` for
+      the control law; YAML for trigger glue. Hysteresis + 30–60 s dwell
+      per amp step. This is the actual remaining work
+- [ ] **Mode picker UX** — HA dashboard surface; map the 2026-06-28
+      7-mode list back onto the 2026-06-06 4-mode pencil tree to keep
+      the mental model coherent
+- [ ] **PRD (`to-prd`)** — now unblocked; integration unknowns are gone
+- [ ] **Viability Q5 (Smartcar / car-side API)** — still orthogonal to
+      v1 critical path; deferred enhancement
+- [ ] **EVSE cold-start-without-WAN fragility** — does HA's path handle
+      it? Test before declaring done
+- [ ] **Repo posture** — decide whether `solar-sync` becomes the home
+      for the end user's HA automations (versioned + tested) or whether
+      we collaborate inline on his Pi and archive the repo
 - [ ] First end-to-end "decide and act" loop running against real user data
 
 ## Session State
-**Last updated:** 2026-06-06 — two async drops from the end user:
-(a) the pencil-note 4-mode decision tree → `docs/requirements.md`
-§4.0 + §6 and `CONTEXT.md` (new *Decision mode* term, Slider demoted
-to provisional); (b) `smartcar.com/pricing` as a car-side API lead →
-new Q5 in `docs/requirements.md` §7 (Lyriq coverage, Free-tier
-endpoint mapping, credential-path fit still open). Viability research
-is still the next active phase; Q5 is an orthogonal enhancement, not
-on the v1 critical path.
-**Session log:** [docs/session-history/2026-06-06-end-user-pencil-notes.md](docs/session-history/2026-06-06-end-user-pencil-notes.md)
-(per-session narratives live in `docs/session-history/` — load on demand
-for accomplishments + per-session decision context).
+**Glossary:** HA = **Home Assistant** (open-source home-automation
+platform; runs on the end user's Raspberry Pi 5). Pi = Raspberry Pi 5.
+EVSE = the Emporia Classic Level 2 EV charger. Envoy = Enphase's solar
+controller / gateway box (the end user's local-API source).
+
+**Last updated:** 2026-06-28 — major pivot. Three async emails from
+the end user across 2026-06-16 → 2026-06-28 (`collateral/20260628/`,
+gitignored) while Vince was heads-down on other work. End user
+unilaterally **dropped Base Power as the data source** (switched to
+his Enphase Envoy's local API), **wired in the consumption current
+taps** Enphase had shipped him originally, and **stood up Home
+Assistant on a Raspberry Pi 5** running a community Emporia
+integration on a charger-entities PR branch. Net result: the
+integration plane solar-sync was scoped to build is now in
+production on his hardware. Viability questions Q1 (Emporia) and
+Q4 (Vue) are resolved; the stack decision is resolved (HA on Pi).
+**What's left is the decision logic** — mode picker + titration
+loop. End user proposed a 7-mode list with one likely label typo
+(mode 3 = "75%" not "50%"). See session log for the full mode
+list and our guidance on it.
+**Session log:** [docs/session-history/2026-06-28-end-user-pivot-to-ha.md](docs/session-history/2026-06-28-end-user-pivot-to-ha.md)
 
 **Open / next steps:**
-- Desk-research the HA Emporia integration (Q1 lead) — the end user
-  pointed at `magico13/ha-emporia-vue`
-  (https://github.com/magico13/ha-emporia-vue) on 2026-06-06.
-  Caveat: the repo name says "Vue" (energy monitor) — confirm whether
-  it also surfaces charger entities (start/pause + set amps) for
-  the end user's Emporia Classic L2 EVSE, or if only the upstream `PyEmVue`
-  library exposes that.
-- Desk-research Vue local API (Q4). Deliver a verdict to the end user
-  so he can decide whether to (re-)buy.
-- Desk-research **Smartcar** (Q5) before committing it to v1 or v2.
-  Two reads needed: (a) Smartcar's "Compatible brands" page — confirm
-  Cadillac Lyriq is supported and at what feature depth; (b) the
-  Smartcar API docs — confirm whether `battery state` (SOC) is in the
-  Free tier's "limited signals," and whether `charging.start/stop` +
-  `set charge limit` map to Build Basic vs Advanced vs Premium. Both
-  reads are public web; no auth.
-- Resolve the stack tension between the end user's "dumb device"
-  preference (STM32) and the Linux/Python needs of the HA path.
-  Candidates: Pi + auto-updating OS, Android app on the Pixel,
-  STM32 + custom Emporia client, hybrid.
-- Investigate the EVSE cold-start-without-WAN fragility (observed
-  twice). Does the HA integration handle it?
-- Identify a spare phone before any ADB / UI-automation / mitmproxy
-  experiment.
+- **Confirm the mode-list typo** at the next exchange with the end
+  user. Mode 3 is labeled "50% Solar Charge" with a 0.4 kW import
+  cap; given mode 5 is "25% Solar Charge" at 1.2 kW, mode 3 is
+  almost certainly meant to be "75%".
+- **Sketch the titration loop** in pyscript or AppDaemon — threshold +
+  hysteresis + 30–60 s dwell per amp step, single signed input
+  (`Current net power consumption` from Envoy), single output
+  (EVSE amps via HA's Emporia integration).
+- **Map the 7-mode list back onto the 2026-06-06 4-mode pencil tree**
+  so the canonical mental model stays intact. (Solar Only = Solar;
+  modes 3–5 = three variants of Mixed; modes 6–8 = Override-On;
+  OFF = Override-Off.)
+- **Run `/to-prd`** — the integration unknowns that blocked the PRD
+  are gone. The decision logic is now well-defined enough to PRD.
+- **Decide repo posture.** Either solar-sync becomes a versioned
+  home for the end user's HA automations (with tests for the
+  control law) or we collaborate inline on his Pi and archive.
+- **EVSE cold-start-without-WAN fragility** test (observed twice
+  pre-pivot). Does HA's mediation handle it, or does the charger
+  losing its cloud session at cold-start still break the API call?
+- **Smartcar (Q5)** desk-research remains deferred — orthogonal,
+  not v1 critical.
 
 **Standing decisions:**
 - Project type: **app** (no agent persona, no `prompts/` directory).
 - Project name: `solar-sync`.
-- Python tooling: **deferred** — don't scaffold until stack is chosen.
-- UI automation is a legitimate fallback, not just a last resort.
 - Pocock skills plugin: user scope, via personal wrapper marketplace.
 - `marketplace.json` source type: `"source": "github"` shorthand.
 - Issue tracker: **GitHub Issues** at `vebutton/solar-sync` via `gh` CLI.
@@ -172,23 +203,28 @@ for accomplishments + per-session decision context).
 - Brainstorm artifacts (agenda, notes) live in `collateral/`
   (gitignored), not `docs/` — PII redaction per `CLAUDE.local.md`.
 - Session State pattern: per-session narratives in
-  `docs/session-history/`; this section holds only standing state + the
-  latest session-log pointer.
+  `docs/session-history/`; this section holds only standing state +
+  the latest session-log pointer.
+- **Data source = Enphase Envoy local API** (not Base Power). Single
+  signed signal: `Current net power consumption` (+ = import, − =
+  export). Locked in 2026-06-28 by the end user's pivot.
+- **Control plane = Home Assistant on a Raspberry Pi 5**, charger via
+  the community Emporia integration's charger-entities PR branch
+  (not upstream stable). Locked in 2026-06-26.
+- **Automation runtime = `pyscript` or `AppDaemon`** for the control
+  loop, YAML for trigger glue. UI automation (Appium / ADB) is no
+  longer on the table.
 - **"Excess solar"** resolves to **Net excess** (`Production − Usage`);
-  Base battery is abstracted as part of "the grid" (RQ1).
+  with Enphase it's just `−1 × (Current net power consumption)`
+  when that value is negative. Base battery is abstracted as part of
+  "the grid" (RQ1).
 - **Algorithm philosophy:** titrate EV amps so net export → 0; enable
   at ≥ 0.1 kW Net excess; respect the amp-ceiling hierarchy (RQ2 / RQ6).
-- **UX direction (provisional).** the end user's 4-mode decision tree
-  (`docs/requirements.md` §4.0; `CONTEXT.md → Decision mode`) is the
-  canonical mental model — he wrote the four modes verbatim,
-  unprompted, on 2026-06-06. The single-Slider sketch from the
-  2026-06-05 brainstorm is **held as provisional** (Slider term in
-  `CONTEXT.md` flagged accordingly). A mode picker currently fits
-  the end user's framing best; a slider-shaped variant may resurface during
-  the PRD pass, most plausibly *inside* mode 2 (the 1.5–3 kW EV draw
-  band) rather than as the top-level control. UX surface remains OPEN
-  (`docs/requirements.md` §6) until viability and the end user's reaction are
-  in.
+- **UX direction.** The end user's 4-mode decision tree
+  (`docs/requirements.md` §4.0; `CONTEXT.md → Decision mode`) remains
+  the canonical mental model. The 2026-06-28 7-mode list expands it
+  but doesn't displace it (mapping in the session log). HA dashboard
+  is the surface — accessed from the end user's Pixel browser.
 - **Amp ceiling hierarchy:** 6A floor / 12A auto-mode / 40A override /
   48A Dedicated Breaker (RQ6). All configurable, not hardcoded.
 - **AI is off the credential path.** Account-touching code must be
