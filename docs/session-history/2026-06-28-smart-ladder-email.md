@@ -44,10 +44,34 @@
    he likely knows HA better than the sketch shows, and sending
    reads as "doing his work" instead of offering UX input.
 
-## Two new writing-style preferences captured
+## Capability delivered: `external-writing-style` skill
 
-Both saved as feedback memories so future drafts apply them
-automatically:
+Vince's `external-writing-style` skill — a user-scope (global)
+Claude Code skill codifying his rules for outbound writing — was
+present and exercised in this session. The skill description names
+its scope: punctuation (no em dashes), tense (simple present over
+progressive), sentence architecture, and tone. It auto-loads any
+time the assistant drafts external-facing writing (emails, blog
+posts, newsletters, press / marketing copy) in **any** project,
+not just solar-sync.
+
+Provenance worth noting: the drafting feedback collected during
+this session's email iterations (don't fake Vince's voice; prefer
+simple present) was synthesized into the skill that same evening.
+The skill is now the canonical source for those preferences; the
+project-local feedback memories below were captured before the
+skill landed and are kept as session-specific context rather than
+as authoritative rules.
+
+This is the first session in solar-sync that surfaced and used the
+skill. Worth being aware of in future drafting work: the skill
+loads automatically and no special invocation is needed.
+
+## Two writing-style preferences captured as memories
+
+These were saved before the skill consolidated them. They are now
+secondary to the skill but document the specific incidents that
+shaped Vince's style guide:
 
 1. **[Don't fake Vince's voice in outgoing drafts](../../../.claude/projects/-Users-vebutton-Development-AI-Apps-solar-sync/memory/feedback_dont_fake_vinces_voice.md)**
    — drafts go out factual / neutral. Vince adds his own opener,
