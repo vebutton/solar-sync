@@ -151,41 +151,46 @@ platform; runs on the end user's Raspberry Pi 5). Pi = Raspberry Pi 5.
 EVSE = the Emporia Classic Level 2 EV charger. Envoy = Enphase's solar
 controller / gateway box (the end user's local-API source).
 
-**Last updated:** 2026-06-28 — major pivot. Three async emails from
-the end user across 2026-06-16 → 2026-06-28 (`collateral/20260628/`,
-gitignored) while Vince was heads-down on other work. End user
-unilaterally **dropped Base Power as the data source** (switched to
-his Enphase Envoy's local API), **wired in the consumption current
-taps** Enphase had shipped him originally, and **stood up Home
-Assistant on a Raspberry Pi 5** running a community Emporia
-integration on a charger-entities PR branch. Net result: the
-integration plane solar-sync was scoped to build is now in
-production on his hardware. Viability questions Q1 (Emporia) and
-Q4 (Vue) are resolved; the stack decision is resolved (HA on Pi).
-**What's left is the decision logic** — mode picker + titration
-loop. End user proposed a 7-mode list with one likely label typo
-(mode 3 = "75%" not "50%"). See session log for the full mode
-list and our guidance on it.
-**Session log:** [docs/session-history/2026-06-28-end-user-pivot-to-ha.md](docs/session-history/2026-06-28-end-user-pivot-to-ha.md)
+**Last updated:** 2026-06-28 — two-part session. First the major
+pivot capture (commit `45c2561`): end user dropped Base Power for
+Enphase Envoy's local API, wired in consumption taps, and stood up
+HA on a Raspberry Pi 5 with a community Emporia integration's
+charger-entities PR branch. Then we worked through his proposed
+7-mode list, surfaced a structural issue (modes 2–4 share one
+control law; mode 5 uses a different one), and emailed back a
+cleaner **Smart Ladder + Specials** design — five-rung % solar
+ladder (100/75/50/25/0) using one rule, plus separate buttons for
+OFF / **Hybrid** (mode 5 renamed) / 12 A / 24 A / 36 A overrides.
+Vince sent the email; awaiting the end user's response. Two new
+writing-style preferences captured to memory: don't fake Vince's
+voice in drafts; simple present over progressive ("I read" not
+"I'm reading").
+**Session log:** [docs/session-history/2026-06-28-smart-ladder-email.md](docs/session-history/2026-06-28-smart-ladder-email.md)
 
 **Open / next steps:**
-- **Confirm the mode-list typo** at the next exchange with the end
-  user. Mode 3 is labeled "50% Solar Charge" with a 0.4 kW import
-  cap; given mode 5 is "25% Solar Charge" at 1.2 kW, mode 3 is
-  almost certainly meant to be "75%".
-- **Sketch the titration loop** in pyscript or AppDaemon — threshold +
-  hysteresis + 30–60 s dwell per amp step, single signed input
-  (`Current net power consumption` from Envoy), single output
-  (EVSE amps via HA's Emporia integration).
-- **Map the 7-mode list back onto the 2026-06-06 4-mode pencil tree**
-  so the canonical mental model stays intact. (Solar Only = Solar;
-  modes 3–5 = three variants of Mixed; modes 6–8 = Override-On;
-  OFF = Override-Off.)
-- **Run `/to-prd`** — the integration unknowns that blocked the PRD
-  are gone. The decision logic is now well-defined enough to PRD.
+- **Await the end user's response** to the Smart Ladder + Specials
+  proposal sent 2026-06-28. Three plausible outcomes:
+  (a) accepts as-is → offer the YAML sketch if useful, otherwise
+  stay available for debugging; (b) accepts with tweaks → integrate
+  his changes into `CONTEXT.md` and `docs/requirements.md`; (c)
+  pushes back on the paradigm split → reconvene on whether mode 5's
+  asymmetry was intentional.
+- **If the design is accepted, update `CONTEXT.md`** — the *Decision
+  mode* term currently references the 2026-06-06 4-mode pencil tree.
+  Smart Ladder is the same family expanded; small edit keeps the
+  terminology current.
+- **Consider an ADR** if Smart Ladder lands — splitting the paradigm
+  into ladder + specials is a structural decision worth documenting.
+- **YAML expertise held in reserve.** Don't send the end user
+  unsolicited YAML — he likely knows HA better than the sketch
+  shows. Contribute UX thinking; if he asks for code, we have a
+  rough HA YAML structure ready (input_select + automation dispatch
+  + parameterized script for the titration loop).
+- **Run `/to-prd`** — integration unknowns are gone; decision logic
+  is now well-defined enough to PRD.
 - **Decide repo posture.** Either solar-sync becomes a versioned
-  home for the end user's HA automations (with tests for the
-  control law) or we collaborate inline on his Pi and archive.
+  home for the end user's HA automations (with tests for the control
+  law) or we collaborate inline on his Pi and archive.
 - **EVSE cold-start-without-WAN fragility** test (observed twice
   pre-pivot). Does HA's mediation handle it, or does the charger
   losing its cloud session at cold-start still break the API call?
