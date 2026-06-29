@@ -151,46 +151,48 @@ platform; runs on the end user's Raspberry Pi 5). Pi = Raspberry Pi 5.
 EVSE = the Emporia Classic Level 2 EV charger. Envoy = Enphase's solar
 controller / gateway box (the end user's local-API source).
 
-**Last updated:** 2026-06-28 — two-part session. First the major
-pivot capture (commit `45c2561`): end user dropped Base Power for
-Enphase Envoy's local API, wired in consumption taps, and stood up
-HA on a Raspberry Pi 5 with a community Emporia integration's
-charger-entities PR branch. Then we worked through his proposed
-7-mode list, surfaced a structural issue (modes 2–4 share one
-control law; mode 5 uses a different one), and emailed back a
-cleaner **Smart Ladder + Specials** design — five-rung % solar
-ladder (100/75/50/25/0) using one rule, plus separate buttons for
-OFF / **Hybrid** (mode 5 renamed) / 12 A / 24 A / 36 A overrides.
-Vince sent the email; awaiting the end user's response. Two new
-writing-style preferences captured to memory: don't fake Vince's
-voice in drafts; simple present over progressive ("I read" not
-"I'm reading").
+**Last updated:** 2026-06-28 (late evening) — multi-part session
+that covered: the major pivot capture (commit `45c2561`); proposing
+the **Smart Ladder + Specials** redesign on top of the end user's
+7-mode draft and emailing it; the end user's same-day response
+**accepting the design with one terminology fix** (it's "min excess
+solar to charge," an ongoing test — not "to start") and a v1 scope
+cut (ship OFF + ladder only; defer Hybrid and the fixed-rate
+overrides; he may drop Hybrid entirely); creating `docs/mode-
+cheatsheet.md` as a personal refresher; creating `docs/prompts/
+gmail-format.md` as a reusable HTML-clipboard prompt; noting the
+delivery of the user-scope `external-writing-style` skill in the
+session log (drafting feedback gathered here fed into it); and
+generating `.atlas/overview.md` for Atlas / Cockpit ingest. End
+user is writing the v1 HA YAML himself next with Gemini's help.
+solar-sync's role going forward is design input + debugging
+partner, not code delivery.
 **Session log:** [docs/session-history/2026-06-28-smart-ladder-email.md](docs/session-history/2026-06-28-smart-ladder-email.md)
 
 **Open / next steps:**
-- **Await the end user's response** to the Smart Ladder + Specials
-  proposal sent 2026-06-28. Three plausible outcomes:
-  (a) accepts as-is → offer the YAML sketch if useful, otherwise
-  stay available for debugging; (b) accepts with tweaks → integrate
-  his changes into `CONTEXT.md` and `docs/requirements.md`; (c)
-  pushes back on the paradigm split → reconvene on whether mode 5's
-  asymmetry was intentional.
-- **If the design is accepted, update `CONTEXT.md`** — the *Decision
-  mode* term currently references the 2026-06-06 4-mode pencil tree.
-  Smart Ladder is the same family expanded; small edit keeps the
-  terminology current.
-- **Consider an ADR** if Smart Ladder lands — splitting the paradigm
-  into ladder + specials is a structural decision worth documenting.
-- **YAML expertise held in reserve.** Don't send the end user
-  unsolicited YAML — he likely knows HA better than the sketch
-  shows. Contribute UX thinking; if he asks for code, we have a
-  rough HA YAML structure ready (input_select + automation dispatch
-  + parameterized script for the titration loop).
+- **Await the end user's v1 HA YAML.** He is writing it next with
+  Gemini's help. When it lands, verify two interpretive assumptions
+  baked into our current notes: (a) "the ladder" he committed to
+  includes the 0% Solar rung (he said "on/off switch and the ladder"
+  without enumerating rungs), and (b) the mode-3 label correction
+  ("75% Solar," not "50% Solar") was tacitly accepted (he did not
+  call it out either way).
+- **Update `CONTEXT.md` *Decision mode* term** to reference the
+  Smart Ladder taxonomy now that the end user has accepted it. The
+  current entry references the 2026-06-06 4-mode pencil tree only.
+- **Consider an ADR** for the Smart Ladder + Specials paradigm
+  split. The end user accepted the structural call; future readers
+  will want to know why Hybrid was lifted out of the ladder.
+- **YAML expertise stays in reserve.** Don't send the end user
+  unsolicited YAML — he knows HA. Contribute UX thinking; if he
+  asks for code, we have a rough HA YAML structure ready
+  (`input_select` + `automation` dispatch + parameterized `script`
+  for the titration loop).
 - **Run `/to-prd`** — integration unknowns are gone; decision logic
-  is now well-defined enough to PRD.
+  is well-defined enough to PRD.
 - **Decide repo posture.** Either solar-sync becomes a versioned
-  home for the end user's HA automations (with tests for the control
-  law) or we collaborate inline on his Pi and archive.
+  home for the end user's HA automations (with tests for the
+  control law) or we collaborate inline on his Pi and archive.
 - **EVSE cold-start-without-WAN fragility** test (observed twice
   pre-pivot). Does HA's mediation handle it, or does the charger
   losing its cloud session at cold-start still break the API call?
@@ -228,8 +230,16 @@ voice in drafts; simple present over progressive ("I read" not
 - **UX direction.** The end user's 4-mode decision tree
   (`docs/requirements.md` §4.0; `CONTEXT.md → Decision mode`) remains
   the canonical mental model. The 2026-06-28 7-mode list expands it
-  but doesn't displace it (mapping in the session log). HA dashboard
-  is the surface — accessed from the end user's Pixel browser.
+  and the **Smart Ladder + Specials** redesign (proposed and accepted
+  2026-06-28) is the v1 UX taxonomy: a five-rung % Solar slider
+  (100/75/50/25/0) plus separate buttons for OFF, Hybrid, and the
+  12 A / 24 A / 36 A overrides. **v1 ships OFF + the ladder only**;
+  Hybrid and the fixed-rate overrides are deferred (Hybrid may be
+  dropped entirely per the end user). The threshold is "**minimum
+  excess solar to charge**" — an ongoing test against Net excess,
+  not a one-time start gate. HA dashboard is the surface, accessed
+  from the end user's Pixel browser. See `docs/mode-cheatsheet.md`
+  for the full plain-English reference.
 - **Amp ceiling hierarchy:** 6A floor / 12A auto-mode / 40A override /
   48A Dedicated Breaker (RQ6). All configurable, not hardcoded.
 - **AI is off the credential path.** Account-touching code must be

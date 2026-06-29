@@ -35,3 +35,6 @@ TODO.md
 *-conversation.md
 CLAUDE.local.md
 learnings.md
+
+# Atlas — internal context file is always gitignored regardless of project visibility
+.atlas/
