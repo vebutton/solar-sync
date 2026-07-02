@@ -151,32 +151,35 @@ platform; runs on the end user's Raspberry Pi 5). Pi = Raspberry Pi 5.
 EVSE = the Emporia Classic Level 2 EV charger. Envoy = Enphase's solar
 controller / gateway box (the end user's local-API source).
 
-**Last updated:** 2026-06-28 (late evening) — multi-part session
-that covered: the major pivot capture (commit `45c2561`); proposing
-the **Smart Ladder + Specials** redesign on top of the end user's
-7-mode draft and emailing it; the end user's same-day response
-**accepting the design with one terminology fix** (it's "min excess
-solar to charge," an ongoing test — not "to start") and a v1 scope
-cut (ship OFF + ladder only; defer Hybrid and the fixed-rate
-overrides; he may drop Hybrid entirely); creating `docs/mode-
-cheatsheet.md` as a personal refresher; creating `docs/prompts/
-gmail-format.md` as a reusable HTML-clipboard prompt; noting the
-delivery of the user-scope `external-writing-style` skill in the
-session log (drafting feedback gathered here fed into it); and
-generating `.atlas/overview.md` for Atlas / Cockpit ingest. End
-user is writing the v1 HA YAML himself next with Gemini's help.
-solar-sync's role going forward is design input + debugging
-partner, not code delivery.
-**Session log:** [docs/session-history/2026-06-28-smart-ladder-email.md](docs/session-history/2026-06-28-smart-ladder-email.md)
+**Last updated:** 2026-07-02 — Debug-support round on the end user's first
+HA `templates.yaml`. The end user sent his "Kind of working" email
+2026-06-29 with the free-solar case working (charging 10–11 A,
+pausing on AC) but occasional spurious start/stop, and asked for a
+printf equivalent in HA. Vince analyzed the YAML, wrote off block
+#6 as self-correcting math, and shipped two upstream hypotheses on
+step #2 (H1: entity-name typo; H2: kW-vs-W unit mismatch), plus a
+one-liner template-sensor pattern for printf-style visibility.
+The end user responded 2026-06-30: printf answered by choosing HA logs
+(via `logger.log` from an automation, gated to plug-in hours); H1
+**falsified** (HA actually names the entity `emphoria_...` — his
+AI matched the environment, captured as a standing decision); H2
+left latent (he did not mention checking the unit); a separate
+consumption-chart worry self-resolved once he noticed the 24-hour
+timescale. No open ask back. He was heading out for a Tuesday
+ride.
+**Session log:** [docs/session-history/2026-07-02-kind-of-working-debug.md](docs/session-history/2026-07-02-kind-of-working-debug.md)
 
 **Open / next steps:**
-- **Await the end user's v1 HA YAML.** He is writing it next with
-  Gemini's help. When it lands, verify two interpretive assumptions
-  baked into our current notes: (a) "the ladder" he committed to
-  includes the 0% Solar rung (he said "on/off switch and the ladder"
-  without enumerating rungs), and (b) the mode-3 label correction
-  ("75% Solar," not "50% Solar") was tacitly accepted (he did not
-  call it out either way).
+- **H2 (unit-of-measurement check) latent.** Do not re-raise
+  unsolicited — the end user's message closed the loop. If he reports the
+  flap continuing, next move is to confirm the sensor's
+  `unit_of_measurement` in Developer Tools → States.
+- **Await the end user's v1 HA YAML** (carried over from the prior session).
+  When it lands, verify two interpretive assumptions: (a) "the
+  ladder" he committed to includes the 0% Solar rung (he said
+  "on/off switch and the ladder" without enumerating rungs), and
+  (b) the mode-3 label correction ("75% Solar," not "50% Solar")
+  was tacitly accepted.
 - **Update `CONTEXT.md` *Decision mode* term** to reference the
   Smart Ladder taxonomy now that the end user has accepted it. The
   current entry references the 2026-06-06 4-mode pencil tree only.
@@ -184,10 +187,10 @@ partner, not code delivery.
   split. The end user accepted the structural call; future readers
   will want to know why Hybrid was lifted out of the ladder.
 - **YAML expertise stays in reserve.** Don't send the end user
-  unsolicited YAML — he knows HA. Contribute UX thinking; if he
-  asks for code, we have a rough HA YAML structure ready
-  (`input_select` + `automation` dispatch + parameterized `script`
-  for the titration loop).
+  unsolicited YAML — he knows HA. Contribute UX thinking and
+  debugging support; if he asks for code, we have a rough HA YAML
+  structure ready (`input_select` + `automation` dispatch +
+  parameterized `script` for the titration loop).
 - **Run `/to-prd`** — integration unknowns are gone; decision logic
   is well-defined enough to PRD.
 - **Decide repo posture.** Either solar-sync becomes a versioned
@@ -215,6 +218,11 @@ partner, not code delivery.
 - **Data source = Enphase Envoy local API** (not Base Power). Single
   signed signal: `Current net power consumption` (+ = import, − =
   export). Locked in 2026-06-28 by the end user's pivot.
+- **Emporia power sensor is named `sensor.emphoria_power_minute_average`**
+  in the end user's HA instance — with the extra "h." Not a typo. HA lists it
+  that way natively (the integration named the entity, not us). Any
+  code we discuss with him uses that spelling as-is. Confirmed by the
+  end user 2026-06-30.
 - **Control plane = Home Assistant on a Raspberry Pi 5**, charger via
   the community Emporia integration's charger-entities PR branch
   (not upstream stable). Locked in 2026-06-26.
